@@ -65,6 +65,7 @@ func (p *Tcp) handleFunc(conn net.Conn) {
 	defer conn.Close()
 	for {
 		var buf = make([]byte, p.BufferSize)
+
 		n, _ := conn.Read(buf)
 		if n > 0 {
 			data := buf[:n]
