@@ -2,7 +2,7 @@ package client
 
 import (
 	"fmt"
-	"hfrpc/common"
+	"github.com/trialcyber/hfrpc/common"
 	"net"
 	"strconv"
 	"time"

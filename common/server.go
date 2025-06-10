@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"hfrpc/interceptor"
+	"github.com/trialcyber/hfrpc/interceptor"
 	"reflect"
 	"strings"
 	"sync"

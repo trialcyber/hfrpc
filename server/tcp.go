@@ -2,9 +2,9 @@ package server
 
 import (
 	"fmt"
-	"hfrpc/common"
-	"hfrpc/interceptor"
-	"hfrpc/packer"
+	"github.com/trialcyber/hfrpc/common"
+	"github.com/trialcyber/hfrpc/interceptor"
+	"github.com/trialcyber/hfrpc/packer"
 	"log"
 	"net"
 )

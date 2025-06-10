@@ -2,8 +2,8 @@ package server
 
 import (
 	"fmt"
-	"hfrpc/common"
-	"hfrpc/interceptor"
+	"github.com/trialcyber/hfrpc/common"
+	"github.com/trialcyber/hfrpc/interceptor"
 	"io"
 	"log"
 	"net/http"
