@@ -30,16 +30,16 @@ type ErrorResponse struct {
 	Id      string                 `json:"id"`
 	JsonRpc string                 `json:"jsonrpc"`
 	Error   Error                  `json:"error"`
-	Content map[string]interface{} `json:"content"`
+	Context map[string]interface{} `json:"context"`
 }
 
 type ErrorNotifyResponse struct {
 	JsonRpc string                 `json:"jsonrpc"`
 	Error   Error                  `json:"error"`
-	Content map[string]interface{} `json:"content"`
+	Context map[string]interface{} `json:"context"`
 }
 
-func E(id interface{}, jsonRpc string, errCode int, content map[string]interface{}) interface{} {
+func E(id interface{}, jsonRpc string, errCode int, context map[string]interface{}) interface{} {
 	e := Error{
 		errCode,
 		CodeMap[errCode],
@@ -47,19 +47,34 @@ func E(id interface{}, jsonRpc string, errCode int, content map[string]interface
 	}
 	var res interface{}
 	if id != nil {
-		res = ErrorResponse{id.(string), jsonRpc, e, content}
+		res = ErrorResponse{id.(string), jsonRpc, e, context}
 	} else {
-		res = ErrorNotifyResponse{jsonRpc, e, content}
+		res = ErrorNotifyResponse{jsonRpc, e, context}
 	}
 	return res
 }
 
-func S(id interface{}, jsonRpc string, result interface{}, content map[string]interface{}) interface{} {
+func Emsg(id interface{}, jsonRpc string, errCode int, message string, context map[string]interface{}) interface{} {
+	e := Error{
+		errCode,
+		message,
+		nil,
+	}
 	var res interface{}
 	if id != nil {
-		res = SuccessResponse{id.(string), jsonRpc, result, content}
+		res = ErrorResponse{id.(string), jsonRpc, e, context}
 	} else {
-		res = SuccessNotifyResponse{jsonRpc, result, content}
+		res = ErrorNotifyResponse{jsonRpc, e, context}
+	}
+	return res
+}
+
+func S(id interface{}, jsonRpc string, result interface{}, context map[string]interface{}) interface{} {
+	var res interface{}
+	if id != nil {
+		res = SuccessResponse{id.(string), jsonRpc, result, context}
+	} else {
+		res = SuccessNotifyResponse{jsonRpc, result, context}
 	}
 	return res
 }

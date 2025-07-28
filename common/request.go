@@ -18,7 +18,7 @@ var RequiredFields = map[string]string{
 	"jsonrpc": "jsonrpc",
 	"method":  "method",
 	"params":  "params",
-	"content": "content",
+	"context": "context",
 }
 
 type SingleRequest struct {
@@ -34,14 +34,14 @@ type Request struct {
 	JsonRpc string                 `json:"jsonrpc"`
 	Method  string                 `json:"method"`
 	Params  interface{}            `json:"params"`
-	Content map[string]interface{} `json:"content"`
+	Context map[string]interface{} `json:"context"`
 }
 
 type NotifyRequest struct {
 	JsonRpc string                 `json:"jsonrpc"`
 	Method  string                 `json:"method"`
 	Params  interface{}            `json:"params"`
-	Content map[string]interface{} `json:"content"`
+	Context map[string]interface{} `json:"context"`
 }
 
 func GetRequestBody(b []byte) interface{} {
@@ -106,7 +106,7 @@ func ParseSingleRequestBody(jsonMap map[string]interface{}) (
 	method string,
 	params interface{},
 	errCode int,
-	content map[string]interface{},
+	context map[string]interface{},
 ) {
 	jsonMap = FilterRequestBody(jsonMap)
 	if _, ok := jsonMap["id"]; ok != true {
@@ -116,7 +116,7 @@ func ParseSingleRequestBody(jsonMap map[string]interface{}) (
 			errCode = InvalidRequest
 			return nil, jsonMap["jsonrpc"].(string), jsonMap["method"].(string), jsonMap["params"], errCode, map[string]interface{}{}
 		}
-		return nil, st.JsonRpc, st.Method, st.Params, errCode, st.Content
+		return nil, st.JsonRpc, st.Method, st.Params, errCode, st.Context
 	} else {
 		st := Request{}
 		err := GetStruct(jsonMap, &st)
@@ -124,7 +124,7 @@ func ParseSingleRequestBody(jsonMap map[string]interface{}) (
 			errCode = InvalidRequest
 			return jsonMap["id"], jsonMap["jsonrpc"].(string), jsonMap["method"].(string), jsonMap["params"], errCode, map[string]interface{}{}
 		}
-		return st.Id, st.JsonRpc, st.Method, st.Params, errCode, st.Content
+		return st.Id, st.JsonRpc, st.Method, st.Params, errCode, st.Context
 	}
 }
 

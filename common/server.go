@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/trialcyber/hfrpc/interceptor"
+	"github.com/trialcyber/hfrpc/packer"
 	"reflect"
 	"strings"
 	"sync"
@@ -27,6 +28,7 @@ type Service struct {
 type Server struct {
 	Sm          sync.Map
 	Interceptor []interceptor.HandlerFunc
+	Packer      *packer.Packer
 }
 
 func (svr *Server) Register(s interface{}) error {
@@ -94,6 +96,14 @@ func RegisterMethod(rm reflect.Method) *Method {
 }
 
 func (svr *Server) Handler(b []byte) []byte {
+	pack := *svr.Packer
+	if pack != nil {
+		data, err := pack.Unpack(b)
+		if err != nil {
+			return jsonE(nil, JsonRpc, ParseError)
+		}
+		b = data
+	}
 	data, err := ParseRequestBody(b)
 	if err != nil {
 		return jsonE(nil, JsonRpc, ParseError)
@@ -117,7 +127,7 @@ func (svr *Server) Handler(b []byte) []byte {
 }
 
 func (svr *Server) SingleHandler(jsonMap map[string]interface{}) interface{} {
-	id, jsonRpc, method, paramsData, errCode, content := ParseSingleRequestBody(jsonMap)
+	id, jsonRpc, method, paramsData, errCode, context := ParseSingleRequestBody(jsonMap)
 	if errCode != WithoutError {
 		return E(id, jsonRpc, errCode, map[string]interface{}{})
 	}
@@ -128,9 +138,9 @@ func (svr *Server) SingleHandler(jsonMap map[string]interface{}) interface{} {
 
 	if len(svr.Interceptor) > 0 {
 		for _, handleFun := range svr.Interceptor {
-			err = handleFun(&content)
+			err = handleFun(&context)
 			if err != nil {
-				return E(id, jsonRpc, InvalidRequest, map[string]interface{}{})
+				return Emsg(id, jsonRpc, InvalidRequest, err.Error(), map[string]interface{}{})
 			}
 		}
 	}
@@ -158,14 +168,14 @@ func (svr *Server) SingleHandler(jsonMap map[string]interface{}) interface{} {
 	if m.Method.Type.NumIn() == 2 {
 		r = m.Method.Func.Call([]reflect.Value{s.(*Service).V, params})
 	} else if m.Method.Type.NumIn() == 3 {
-		r = m.Method.Func.Call([]reflect.Value{s.(*Service).V, params, reflect.ValueOf(content)})
+		r = m.Method.Func.Call([]reflect.Value{s.(*Service).V, params, reflect.ValueOf(context)})
 	}
 	if len(r) <= 0 {
 		return E(id, jsonRpc, InternalError, map[string]interface{}{})
 	}
 	if i := r[1].Interface(); i != nil {
 		Debug(i.(error))
-		return E(id, jsonRpc, InternalError, map[string]interface{}{})
+		return Emsg(id, jsonRpc, InternalError, i.(error).Error(), map[string]interface{}{})
 	}
 	return S(id, jsonRpc, r[0].Interface(), map[string]interface{}{})
 }

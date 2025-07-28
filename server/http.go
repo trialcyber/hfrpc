@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/trialcyber/hfrpc/common"
 	"github.com/trialcyber/hfrpc/interceptor"
+	"github.com/trialcyber/hfrpc/packer"
 	"io"
 	"log"
 	"net/http"
@@ -14,6 +15,7 @@ type Http struct {
 	Port       string
 	Server     common.Server
 	BufferSize int
+	Packer     *packer.Packer
 }
 
 func NewHttpServer(ip string, port string) *Http {
@@ -22,6 +24,7 @@ func NewHttpServer(ip string, port string) *Http {
 		port,
 		common.Server{},
 		BufferSize,
+		nil,
 	}
 }
 
@@ -43,6 +46,18 @@ func (p *Http) SetBuffer(bs int) {
 
 func (p *Http) SetInterceptor(handlers []interceptor.HandlerFunc) {
 	p.Server.Interceptor = handlers
+}
+
+func (p *Http) SetPacker(packer packer.Packer) {
+	p.Packer = &packer
+}
+
+func (p *Http) GetIp() string {
+	return p.Ip
+}
+
+func (p *Http) GetPort() string {
+	return p.Port
 }
 
 func (p *Http) handleFunc(w http.ResponseWriter, r *http.Request) {

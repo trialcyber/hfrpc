@@ -18,7 +18,6 @@ type Tcp struct {
 	Port       string
 	Server     common.Server
 	BufferSize int
-	Packer     *packer.Packer
 }
 
 func NewTcpServer(ip string, port string) *Tcp {
@@ -27,7 +26,6 @@ func NewTcpServer(ip string, port string) *Tcp {
 		port,
 		common.Server{},
 		BufferSize,
-		nil,
 	}
 }
 
@@ -57,7 +55,13 @@ func (p *Tcp) SetInterceptor(handlers []interceptor.HandlerFunc) {
 }
 
 func (p *Tcp) SetPacker(packer packer.Packer) {
-	p.Packer = &packer
+	p.Server.Packer = &packer
+}
+func (p *Tcp) GetIp() string {
+	return p.Ip
+}
+func (p *Tcp) GetPort() string {
+	return p.Port
 }
 
 func (p *Tcp) handleFunc(conn net.Conn) {
@@ -69,12 +73,9 @@ func (p *Tcp) handleFunc(conn net.Conn) {
 		n, _ := conn.Read(buf)
 		if n > 0 {
 			data := buf[:n]
-			if p.Packer != nil {
-				data = (*p.Packer).Unpack(data)
-			}
 			res := p.Server.Handler(data)
-			if p.Packer != nil {
-				res = (*p.Packer).Pack(res)
+			if pack := *(p.Server.Packer); pack != nil {
+				res = pack.Pack(res)
 			}
 			_, _ = conn.Write(res)
 		}
