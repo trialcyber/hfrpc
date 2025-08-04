@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/goinggo/mapstructure"
 	"reflect"
 	"strings"
 )
@@ -209,7 +208,12 @@ func GetStruct(d interface{}, s interface{}) error {
 	default:
 		break
 	}
-	if err := mapstructure.Decode(jsonMap, s); err != nil {
+	bytes, err := json.Marshal(jsonMap)
+	if err != nil {
+		Debug(err)
+		return err
+	}
+	if err = json.Unmarshal(bytes, s); err != nil {
 		Debug(err)
 		return err
 	}

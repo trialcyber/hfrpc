@@ -3,7 +3,6 @@ package common
 import (
 	"encoding/json"
 	"errors"
-	"github.com/goinggo/mapstructure"
 	"reflect"
 )
 
@@ -100,11 +99,17 @@ func GetSingleResponse(jsonData map[string]interface{}, result interface{}) erro
 		Debug(resErr.Message)
 		return errors.New(resErr.Message)
 	}
-	if err = mapstructure.Decode(jsonData["result"], result); err != nil {
+
+	bytes, err := json.Marshal(jsonData["result"])
+	if err != nil {
 		Debug(err)
 		return err
 	}
-	return err
+	if err = json.Unmarshal(bytes, result); err != nil {
+		Debug(err)
+		return err
+	}
+	return nil
 }
 
 func GetResult(b []byte, result interface{}) error {
