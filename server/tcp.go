@@ -67,6 +67,7 @@ func (p *Tcp) GetPort() string {
 
 func (p *Tcp) handleFunc(conn net.Conn) {
 	var buf = make([]byte, p.BufferSize)
+	defer conn.Close()
 	n, _ := conn.Read(buf)
 	if n > 0 {
 		data := buf[:n]
@@ -76,4 +77,5 @@ func (p *Tcp) handleFunc(conn net.Conn) {
 		}
 		_, _ = conn.Write(res)
 	}
+
 }
