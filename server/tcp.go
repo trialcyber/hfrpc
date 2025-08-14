@@ -2,11 +2,12 @@ package server
 
 import (
 	"fmt"
+	"log"
+	"net"
+
 	"github.com/trialcyber/hfrpc/common"
 	"github.com/trialcyber/hfrpc/interceptor"
 	"github.com/trialcyber/hfrpc/packer"
-	"log"
-	"net"
 )
 
 const (
@@ -65,20 +66,15 @@ func (p *Tcp) GetPort() string {
 }
 
 func (p *Tcp) handleFunc(conn net.Conn) {
-
 	defer conn.Close()
-	for {
-		var buf = make([]byte, p.BufferSize)
-
-		n, _ := conn.Read(buf)
-		if n > 0 {
-			data := buf[:n]
-			res := p.Server.Handler(data)
-			if pack := *(p.Server.Packer); pack != nil {
-				res = pack.Pack(res)
-			}
-			_, _ = conn.Write(res)
+	var buf = make([]byte, p.BufferSize)
+	n, _ := conn.Read(buf)
+	if n > 0 {
+		data := buf[:n]
+		res := p.Server.Handler(data)
+		if pack := *(p.Server.Packer); pack != nil {
+			res = pack.Pack(res)
 		}
+		_, _ = conn.Write(res)
 	}
-
 }
