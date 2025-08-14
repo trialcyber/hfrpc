@@ -66,7 +66,6 @@ func (p *Tcp) GetPort() string {
 }
 
 func (p *Tcp) handleFunc(conn net.Conn) {
-	defer conn.Close()
 	var buf = make([]byte, p.BufferSize)
 	n, _ := conn.Read(buf)
 	if n > 0 {
