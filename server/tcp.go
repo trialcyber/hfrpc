@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"time"
 
 	"github.com/trialcyber/hfrpc/common"
 	"github.com/trialcyber/hfrpc/interceptor"
@@ -66,18 +67,21 @@ func (p *Tcp) GetPort() string {
 }
 
 func (p *Tcp) handleFunc(conn net.Conn) {
-	var buf = make([]byte, p.BufferSize)
-	defer func() {
+	buf := make([]byte, p.BufferSize)
+	go time.AfterFunc(61*time.Second, func() {
 		_ = conn.Close()
-	}()
-	n, _ := conn.Read(buf)
-	if n > 0 {
-		data := buf[:n]
-		res := p.Server.Handler(data)
-		if pack := *(p.Server.Packer); pack != nil {
-			res = pack.Pack(res)
+	})
+	for {
+		n, _ := conn.Read(buf)
+		if n > 0 {
+			data := buf[:n]
+			res := p.Server.Handler(data)
+			if pack := *(p.Server.Packer); pack != nil {
+				res = pack.Pack(res)
+			}
+			_, _ = conn.Write(res)
+			buf = make([]byte, p.BufferSize)
 		}
-		_, _ = conn.Write(res)
 	}
 
 }
