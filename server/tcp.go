@@ -3,6 +3,7 @@ package server
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"log"
 	"net"
 
@@ -74,7 +75,7 @@ func (p *Tcp) handleFunc(conn net.Conn) {
 		buf := make([]byte, p.BufferSize)
 		n, err := reader.Read(buf[:]) // 读取数据
 		if err != nil {
-			if err.Error() != "EOF" {
+			if err != io.EOF {
 				fmt.Println("read from client failed, err:", err)
 			}
 			break
