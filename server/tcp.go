@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bufio"
 	"fmt"
 	"log"
 	"net"
@@ -66,16 +67,26 @@ func (p *Tcp) GetPort() string {
 }
 
 func (p *Tcp) handleFunc(conn net.Conn) {
-	buf := make([]byte, p.BufferSize)
+	pack := *(p.Server.Packer)
 	defer conn.Close()
-	n, _ := conn.Read(buf)
-	if n > 0 {
-		data := buf[:n]
-		res := p.Server.Handler(data)
-		if pack := *(p.Server.Packer); pack != nil {
-			res = pack.Pack(res)
+	for {
+		reader := bufio.NewReader(conn)
+		buf := make([]byte, p.BufferSize)
+		n, err := reader.Read(buf[:]) // 读取数据
+		if err != nil {
+			if err.Error() != "EOF" {
+				fmt.Println("read from client failed, err:", err)
+			}
+			break
 		}
-		_, _ = conn.Write(res)
-		buf = make([]byte, p.BufferSize)
+		if n > 0 {
+			data := buf[:n]
+			res := p.Server.Handler(data)
+			if pack != nil {
+				res = pack.Pack(res)
+			}
+			_, _ = conn.Write(res)
+		}
 	}
+
 }
