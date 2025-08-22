@@ -71,7 +71,7 @@ func (p *Tcp) handleFunc(conn net.Conn) {
 	pack := *(p.Server.Packer)
 	defer conn.Close()
 	for {
-		reader := bufio.NewReader(conn)
+		reader := bufio.NewReaderSize(conn, p.BufferSize)
 		buf := make([]byte, p.BufferSize)
 		n, err := reader.Read(buf[:]) // 读取数据
 		if err != nil {
