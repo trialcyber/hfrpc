@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/trialcyber/hfrpc/interceptor"
-	"github.com/trialcyber/hfrpc/packer"
 	"reflect"
 	"strings"
 	"sync"
+
+	"github.com/trialcyber/hfrpc/interceptor"
+	"github.com/trialcyber/hfrpc/packer"
 )
 
 type Method struct {
@@ -96,9 +97,8 @@ func RegisterMethod(rm reflect.Method) *Method {
 }
 
 func (svr *Server) Handler(b []byte) []byte {
-	pack := *svr.Packer
-	if pack != nil {
-		data, err := pack.Unpack(b)
+	if svr.Packer != nil {
+		data, err := (*(svr.Packer)).Unpack(b)
 		if err != nil {
 			return jsonE(nil, JsonRpc, ParseError)
 		}
