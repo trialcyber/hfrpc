@@ -1,8 +1,10 @@
 package packer
 
 import (
+	"bytes"
 	"encoding/binary"
-	"errors"
+	"io"
+	"net"
 )
 
 type LengthPacker struct {
@@ -10,18 +12,29 @@ type LengthPacker struct {
 }
 
 func (l LengthPacker) Pack(data []byte) []byte {
-
-	buf := make([]byte, int(l.Offset)+len(data))
-	binary.BigEndian.PutUint32(buf[:l.Offset], uint32(len(data)))
-	copy(buf[l.Offset:], data)
-	return buf
+	msgLen := uint32(len(string(data)))
+	buf := new(bytes.Buffer)
+	err := binary.Write(buf, binary.BigEndian, msgLen)
+	if err != nil {
+		return nil
+	}
+	buf.Write(data)
+	return buf.Bytes()
 }
 
-func (l LengthPacker) Unpack(data []byte) ([]byte, error) {
-	dataLen := binary.BigEndian.Uint32(data[:l.Offset])
-	if int(dataLen) > (len(data) - int(l.Offset)) {
-		err := errors.New("format error")
-		return data, err
+func (l LengthPacker) Unpack(conn net.Conn) ([]byte, error) {
+	lenBytes := make([]byte, l.Offset)
+	_, err := io.ReadFull(conn, lenBytes)
+	if err != nil {
+		return nil, err
 	}
-	return data[l.Offset : dataLen+l.Offset], nil
+	// 解析消息长度
+	msgLength := binary.BigEndian.Uint32(lenBytes)
+	// 读取消息体
+	msgBytes := make([]byte, msgLength)
+	_, err = io.ReadFull(conn, msgBytes)
+	if err != nil {
+		return nil, err
+	}
+	return msgBytes, nil
 }

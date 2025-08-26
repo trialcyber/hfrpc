@@ -1,8 +1,13 @@
 package packer
 
+import (
+	"io"
+	"net"
+)
+
 type Packer interface {
 	Pack([]byte) []byte
-	Unpack(data []byte) ([]byte, error)
+	Unpack(conn net.Conn) ([]byte, error)
 }
 
 type EofPacker struct {
@@ -13,6 +18,12 @@ func (e EofPacker) Pack(data []byte) []byte {
 	return append(data, []byte(e.Eof)...)
 }
 
-func (e EofPacker) Unpack(data []byte) ([]byte, error) {
-	return data[:len(data)-len([]byte(e.Eof))], nil
+func (e EofPacker) Unpack(conn net.Conn) ([]byte, error) {
+	msgBytes := make([]byte, 1024*1024)
+	n, err := io.ReadFull(conn, msgBytes)
+	if err != nil {
+		return nil, err
+	}
+	data := msgBytes[:n]
+	return msgBytes[:len(data)-len([]byte(e.Eof))], nil
 }

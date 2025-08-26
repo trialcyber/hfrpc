@@ -97,13 +97,6 @@ func RegisterMethod(rm reflect.Method) *Method {
 }
 
 func (svr *Server) Handler(b []byte) []byte {
-	if svr.Packer != nil {
-		data, err := (*(svr.Packer)).Unpack(b)
-		if err != nil {
-			return jsonE(nil, JsonRpc, ParseError)
-		}
-		b = data
-	}
 	data, err := ParseRequestBody(b)
 	if err != nil {
 		return jsonE(nil, JsonRpc, ParseError)
