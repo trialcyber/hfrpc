@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"net"
+	"time"
 
 	"github.com/trialcyber/hfrpc/common"
 	"github.com/trialcyber/hfrpc/interceptor"
@@ -73,7 +74,10 @@ func (p *Tcp) handleFunc(conn net.Conn) {
 		data, err := pack.Unpack(conn)
 		if err != nil {
 			if err != io.EOF {
-				fmt.Println("read from client failed, err:", err)
+				fmt.Printf("%v read from client failed, err: %v \n",
+					time.Now().Format("2006-01-02 15:04:05"),
+					err.Error(),
+				)
 			}
 			break
 		}
