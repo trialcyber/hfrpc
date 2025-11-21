@@ -81,6 +81,7 @@ func (p *Tcp) handleFunc(conn net.Conn) {
 			}
 			break
 		}
+		fmt.Println(string(data))
 		res := p.Server.Handler(data)
 		res = pack.Pack(res)
 		if res != nil {
