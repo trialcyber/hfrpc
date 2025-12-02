@@ -2,82 +2,115 @@ package client
 
 import (
 	"fmt"
-	"github.com/trialcyber/hfrpc/common"
 	"net"
 	"strconv"
 	"time"
+
+	"github.com/trialcyber/hfrpc/common"
+	"github.com/trialcyber/hfrpc/packer"
 )
 
+var Connection map[string]ConnInfo
+
+type ConnInfo struct {
+	Addr        string
+	Conn        net.Conn
+	LastUseTime int64
+}
+
 type Tcp struct {
-	Ip          string
-	Port        string
-	RequestList []*common.SingleRequest
+	Ip      string
+	Port    string
+	Options OptionsSetting
+	Packer  *packer.Packer
 }
 
-func (p *Tcp) BatchAppend(method string, params interface{}, result interface{}, isNotify bool) *error {
-	singleRequest := &common.SingleRequest{
-		Method:   method,
-		Params:   params,
-		Result:   result,
-		Error:    new(error),
-		IsNotify: isNotify,
-	}
-	p.RequestList = append(p.RequestList, singleRequest)
-	return singleRequest.Error
+type OptionsSetting struct {
+	Heartbeat   int
+	MaxIdleTime int
 }
 
-func (p *Tcp) BatchCall() error {
-	var (
-		err error
-		br  []interface{}
-	)
-	for _, v := range p.RequestList {
-		var (
-			req interface{}
-		)
-		if v.IsNotify == true {
-			req = common.Rs(nil, v.Method, v.Params)
-		} else {
-			req = common.Rs(strconv.FormatInt(time.Now().Unix(), 10), v.Method, v.Params)
-		}
-		br = append(br, req)
-	}
-	bReq := common.JsonBatchRs(br)
-	err = p.handleFunc(bReq, p.RequestList)
-	p.RequestList = make([]*common.SingleRequest, 0)
-	return err
-}
-
-func (p *Tcp) Call(method string, params interface{}, result interface{}, isNotify bool) error {
-	var (
-		err error
-		req []byte
-	)
-	if isNotify {
-		req = common.JsonRs(nil, method, params)
-	} else {
-		req = common.JsonRs(strconv.FormatInt(time.Now().Unix(), 10), method, params)
-	}
+func (p *Tcp) Call(method string, params interface{}, result interface{}) (err error) {
+	req := common.JsonRs(strconv.FormatInt(time.Now().Unix(), 10), method, params)
 	err = p.handleFunc(req, result)
 	return err
 }
 
 func (p *Tcp) handleFunc(b []byte, result interface{}) error {
 	var addr = fmt.Sprintf("%s:%s", p.Ip, p.Port)
-	conn, err := net.Dial("tcp", addr)
+	conn, err := p.GetConnection(addr)
 	if err != nil {
 		return err
 	}
-	defer conn.Close()
+
+	if p.Packer != nil { // 组装数据包
+		b = (*(p.Packer)).Pack(b)
+	}
 	_, err = conn.Write(b)
 	if err != nil {
+		p.CloseConnection(addr, conn)
 		return err
 	}
-	var buf = make([]byte, 512)
-	n, err := conn.Read(buf)
+
+	//解析数据包
+	var res []byte
+	if p.Packer != nil {
+		res, err = (*(p.Packer)).Unpack(conn)
+	} else {
+		var buf = make([]byte, 512)
+		n, _ := conn.Read(buf)
+		res = buf[:n]
+	}
 	if err != nil {
+		p.CloseConnection(addr, conn)
 		return err
 	}
-	err = common.GetResult(buf[:n], result)
+	err = common.GetResult(res, result)
 	return err
+}
+
+func (p *Tcp) GetConnection(addr string) (con net.Conn, err error) {
+	timeUnix := time.Now().Unix()
+	if res, ok := Connection[addr]; ok { // 命中内存的连接
+		res.LastUseTime = timeUnix
+		Connection[addr] = res
+		return res.Conn, nil
+	}
+	// 首次创建连接
+	conn, err := net.Dial("tcp", addr)
+	if err != nil {
+		return nil, err
+	}
+	if Connection == nil {
+		Connection = make(map[string]ConnInfo)
+	}
+	// 存入变量
+	Connection[addr] = ConnInfo{Addr: addr, Conn: conn, LastUseTime: timeUnix}
+	// 检测心跳 和 最大空闲时间
+	go func() {
+		for {
+			heartbeat := 7
+			if p.Options.Heartbeat > 0 {
+				heartbeat = p.Options.Heartbeat
+			}
+			time.Sleep(time.Duration(heartbeat) * time.Second)
+			_, err := conn.Write([]byte("ping")) //检测心跳
+			//最大空闲时间
+			ti := time.Now().Unix() - Connection[addr].LastUseTime
+			maxIdleTime := 60
+			if p.Options.MaxIdleTime > 0 {
+				maxIdleTime = p.Options.MaxIdleTime
+			}
+			if err != nil || ti > int64(maxIdleTime) {
+				p.CloseConnection(addr, conn)
+				break
+			}
+		}
+	}()
+	return conn, err
+}
+
+func (*Tcp) CloseConnection(addr string, conn net.Conn) {
+	conn.Close()
+	delete(Connection, addr)
 }

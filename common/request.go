@@ -26,6 +26,7 @@ type SingleRequest struct {
 	Result   interface{}
 	Error    *error
 	IsNotify bool
+	Context  map[string]interface{}
 }
 
 type Request struct {
@@ -232,10 +233,5 @@ func Rs(id interface{}, method string, params interface{}) interface{} {
 
 func JsonRs(id interface{}, method string, params interface{}) []byte {
 	e, _ := json.Marshal(Rs(id, method, params))
-	return e
-}
-
-func JsonBatchRs(data []interface{}) []byte {
-	e, _ := json.Marshal(data)
 	return e
 }
